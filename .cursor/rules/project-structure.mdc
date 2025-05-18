@@ -1,0 +1,103 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+FocusFlow app architecture and coding standards
+
+## 🧠 Purpose
+
+This rule encodes the design decisions and development standards for the **FocusFlow** iOS application—a Pomodoro-style time tracker for deep work sessions with optional ambient sounds, activity tracking, statistics, and premium unlocks.
+
+## 📦 Architecture
+
+* Use **SwiftUI** for UI components
+* Use **MVVM** pattern for app structure:
+
+  * Views: SwiftUI screens
+  * ViewModels: ObservableObjects with @Published properties
+  * Models: Plain data structs or CoreData entities
+* Use `NavigationStack` for navigation (iOS 16+)
+* Separate logic into **feature modules** (e.g., Timer, Stats, Sounds, Settings, Premium)
+* Favor **async/await** for async operations
+
+## 🔧 Code Style
+
+* Prefer `struct` over `class` where possible
+* Avoid `force unwraps (!)`
+* Use protocol-oriented design where appropriate
+* Explicit access modifiers (`private`, `internal`, `public`)
+* ViewModels must be testable (inject services)
+* Follow SwiftLint conventions where applicable
+
+## 🧩 Modules
+
+The app is split into the following core modules:
+
+* `Home`: Entry point to select activity and start a session
+* `Timer`: Focus timer logic and display
+* `Activities`: CRUD for user-defined activity types
+* `Sounds`: List of ambient sounds with preview & playback control
+* `SessionHistory`: Log of completed sessions with metadata
+* `Statistics`: Weekly streak, session time totals, goals
+* `Settings`: Timer durations, preferences, theme
+* `Premium`: Feature gating and in-app upgrade flow
+
+## 🔒 Premium Features
+
+All features listed below are **locked** for free users:
+
+* More than 5 background sound options
+* Detailed session history (older than 7 days)
+* Advanced statistics (trends, streaks, activity time)
+* Fully customizable Pomodoro durations and breaks
+* Focus challenges & streak rewards
+* Calendar integration
+
+If `User.isPremium == false`:
+
+* Lock UI with blur and “Premium 🔒” overlay
+* Tapping locked feature should show a **paywall modal**
+
+## 🧪 Testing
+
+* Use `XCTest` for unit tests
+* Prioritize testing of:
+
+  * ViewModels (logic)
+  * Services (TimerService, AudioService, etc.)
+  * Use dependency injection and protocols to enable mocking
+
+## 🗂 Folder Structure (MVP)
+
+```
+FocusFlow/
+  Features/
+    Home/
+    Timer/
+    Sounds/
+    Sessions/
+    Statistics/
+    Settings/
+    Premium/
+  Shared/
+    Models/
+    Services/
+    Resources/
+    Theme/
+```
+
+## 🎨 UI/UX Guidelines
+
+* Minimalist interface with dark mode by default
+* Timer screen includes activity name, remaining time, and ambient sound
+* Navigation: Home → Timer → Stats/Sounds/Settings
+* Use previews to test sound and layout responsiveness
+
+## ✅ Always enforce
+
+* SwiftUI (not UIKit)
+* MVVM separation
+* State via ObservableObject / @Published
+* Feature gating via `User.isPremium`
+* Timer logic centralized in TimerService
