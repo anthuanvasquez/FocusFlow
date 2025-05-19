@@ -23,3 +23,7 @@ struct ContentView: View {
         .preferredColorScheme(settingsViewModel.theme.colorScheme)
     }
 }
+
+#Preview {
+    ContentView()
+}
