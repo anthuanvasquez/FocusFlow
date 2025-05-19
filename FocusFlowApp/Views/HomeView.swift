@@ -8,6 +8,7 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
+    @State private var selectedActivity: Activity?
 
     var body: some View {
         NavigationView {
@@ -15,7 +16,7 @@ struct HomeView: View {
                 ForEach(viewModel.state.activities) { activity in
                     ActivityRow(activity: activity)
                         .onTapGesture {
-                            viewModel.selectActivity(activity)
+                            selectedActivity = activity
                         }
                         .swipeActions {
                             Button(role: .destructive) {
@@ -81,6 +82,9 @@ struct HomeView: View {
                         }
                     }
                 }
+            }
+            .sheet(item: $selectedActivity) { activity in
+                TimerView(activity: activity)
             }
         }
     }
