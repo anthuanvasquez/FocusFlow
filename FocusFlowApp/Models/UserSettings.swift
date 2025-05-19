@@ -7,6 +7,7 @@ struct UserSettings: Codable {
     var sessionsUntilLongBreak: Int
     var soundEnabled: Bool
     var notificationsEnabled: Bool
+    var theme: Theme
 
     static let `default` = UserSettings(
         workDuration: 25 * 60,
@@ -14,6 +15,7 @@ struct UserSettings: Codable {
         longBreakDuration: 15 * 60,
         sessionsUntilLongBreak: 4,
         soundEnabled: true,
-        notificationsEnabled: true
+        notificationsEnabled: true,
+        theme: .system
     )
 }

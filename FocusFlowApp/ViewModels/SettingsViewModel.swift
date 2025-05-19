@@ -1,58 +1,71 @@
 import Foundation
 import Combine
+import SwiftUI
 
-class SettingsViewModel: ObservableObject, BaseViewModel {
+class SettingsViewModel: BaseViewModel {
     @Published var workDuration: TimeInterval
     @Published var shortBreakDuration: TimeInterval
     @Published var longBreakDuration: TimeInterval
     @Published var sessionsUntilLongBreak: Int
+    @Published var soundEnabled: Bool
     @Published var notificationsEnabled: Bool
+    @Published var theme: Theme
 
     var cancellables = Set<AnyCancellable>()
-    private let dataManager = DataManager.shared
+    private let dataManager: DataManager
 
-    init() {
+    init(dataManager: DataManager = .shared) {
+        self.dataManager = dataManager
         let settings = dataManager.loadSettings()
+
         self.workDuration = settings.workDuration
         self.shortBreakDuration = settings.shortBreakDuration
         self.longBreakDuration = settings.longBreakDuration
         self.sessionsUntilLongBreak = settings.sessionsUntilLongBreak
+        self.soundEnabled = settings.soundEnabled
         self.notificationsEnabled = settings.notificationsEnabled
+        self.theme = settings.theme
+
         setupBindings()
     }
 
     func setupBindings() {
-        Publishers.CombineLatest4($workDuration, $shortBreakDuration, $longBreakDuration, $sessionsUntilLongBreak)
-            .sink { [weak self] work, short, long, sessions in
-                self?.saveSettings()
-            }
-            .store(in: &cancellables)
+        // Create a publisher that emits when any of our properties change
+        let publisher = $workDuration
+            .merge(with: $shortBreakDuration)
+            .merge(with: $longBreakDuration)
+            .merge(with: $sessionsUntilLongBreak.map { _ in TimeInterval(0) })
+            .merge(with: $soundEnabled.map { _ in TimeInterval(0) })
+            .merge(with: $notificationsEnabled.map { _ in TimeInterval(0) })
+            .merge(with: $theme.map { _ in TimeInterval(0) })
 
-        $notificationsEnabled
+        publisher
+            .debounce(for: 0.5, scheduler: RunLoop.main)
             .sink { [weak self] _ in
-                self?.saveSettings()
+                guard let self = self else { return }
+                let settings = UserSettings(
+                    workDuration: self.workDuration,
+                    shortBreakDuration: self.shortBreakDuration,
+                    longBreakDuration: self.longBreakDuration,
+                    sessionsUntilLongBreak: self.sessionsUntilLongBreak,
+                    soundEnabled: self.soundEnabled,
+                    notificationsEnabled: self.notificationsEnabled,
+                    theme: self.theme
+                )
+                self.dataManager.saveSettings(settings)
             }
             .store(in: &cancellables)
-    }
-
-    private func saveSettings() {
-        let settings = UserSettings(
-            workDuration: workDuration,
-            shortBreakDuration: shortBreakDuration,
-            longBreakDuration: longBreakDuration,
-            sessionsUntilLongBreak: sessionsUntilLongBreak,
-            soundEnabled: true,
-            notificationsEnabled: notificationsEnabled
-        )
-        dataManager.saveSettings(settings)
     }
 
     func resetToDefaults() {
-        workDuration = 25 * 60 // 25 minutes
-        shortBreakDuration = 5 * 60 // 5 minutes
-        longBreakDuration = 15 * 60 // 15 minutes
-        sessionsUntilLongBreak = 4
-        notificationsEnabled = true
+        let defaults = UserSettings.default
+        workDuration = defaults.workDuration
+        shortBreakDuration = defaults.shortBreakDuration
+        longBreakDuration = defaults.longBreakDuration
+        sessionsUntilLongBreak = defaults.sessionsUntilLongBreak
+        soundEnabled = defaults.soundEnabled
+        notificationsEnabled = defaults.notificationsEnabled
+        theme = defaults.theme
     }
 
     func updateWorkDuration(_ duration: TimeInterval) {
@@ -72,7 +85,7 @@ class SettingsViewModel: ObservableObject, BaseViewModel {
     }
 
     func toggleSound() {
-        notificationsEnabled.toggle()
+        soundEnabled.toggle()
     }
 
     func toggleNotifications() {
