@@ -14,21 +14,39 @@ struct HomeView: View {
         NavigationView {
             List {
                 ForEach(viewModel.state.activities) { activity in
-                    ActivityRow(activity: activity)
-                        .onTapGesture {
-                            selectedActivity = activity
-                        }
-                        .swipeActions {
-                            Button(role: .destructive) {
-                                viewModel.deleteActivity(activity)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                    Button {
+                        selectedActivity = activity
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(activity.name)
+                                .font(.headline)
+
+                            if !activity.description.isEmpty {
+                                Text(activity.description)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
                         }
+                    }
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            viewModel.deleteActivity(activity)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
             }
             .navigationTitle("Focus Flow")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    NavigationLink {
+                        StatsView()
+                    } label: {
+                        Image(systemName: "chart.bar")
+                    }
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         viewModel.showAddActivity()
@@ -38,14 +56,10 @@ struct HomeView: View {
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView()) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
                         Image(systemName: "gear")
-                    }
-                }
-
-                ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink(destination: StatsView()) {
-                        Image(systemName: "chart.bar")
                     }
                 }
             }
@@ -74,6 +88,7 @@ struct HomeView: View {
                                 viewModel.cancelAddActivity()
                             }
                         }
+
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Add") {
                                 viewModel.addActivity()
@@ -84,7 +99,9 @@ struct HomeView: View {
                 }
             }
             .sheet(item: $selectedActivity) { activity in
-                TimerView(activity: activity)
+                NavigationView {
+                    TimerView(activity: activity)
+                }
             }
         }
     }
@@ -97,8 +114,8 @@ struct ActivityRow: View {
         VStack(alignment: .leading) {
             Text(activity.name)
                 .font(.headline)
-            if let description = activity.description {
-                Text(description)
+            if !activity.description.isEmpty {
+                Text(activity.description)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }

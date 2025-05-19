@@ -2,55 +2,48 @@ import Foundation
 import Combine
 
 class SettingsViewModel: BaseViewModel {
-    struct State {
-        var settings: UserSettings
-        var isLoading: Bool = false
-        var error: Error?
+    @Published var settings: UserSettings {
+        didSet {
+            DataManager.shared.saveSettings(settings)
+        }
     }
 
-    @Published private(set) var state: State
     var cancellables = Set<AnyCancellable>()
 
-    init(settings: UserSettings = .default) {
-        self.state = State(settings: settings)
+    init() {
+        self.settings = DataManager.shared.loadSettings()
         setupBindings()
     }
 
     func setupBindings() {
-        // TODO: Setup data bindings for settings persistence
-    }
-
-    func updatePomodoroDuration(_ duration: TimeInterval) {
-        state.settings.pomodoroDuration = duration
-        saveSettings()
-    }
-
-    func updateShortBreakDuration(_ duration: TimeInterval) {
-        state.settings.shortBreakDuration = duration
-        saveSettings()
-    }
-
-    func updateLongBreakDuration(_ duration: TimeInterval) {
-        state.settings.longBreakDuration = duration
-        saveSettings()
-    }
-
-    func updateSessionsUntilLongBreak(_ count: Int) {
-        state.settings.sessionsUntilLongBreak = count
-        saveSettings()
-    }
-
-    func updateSoundVolume(_ volume: Double) {
-        state.settings.soundVolume = volume
-        saveSettings()
+        // Settings are automatically saved when changed due to the property observer
     }
 
     func resetToDefaults() {
-        state.settings = .default
-        saveSettings()
+        settings = .default
     }
 
-    private func saveSettings() {
-        // TODO: Implement settings persistence
+    func updateWorkDuration(_ duration: TimeInterval) {
+        settings.workDuration = duration
+    }
+
+    func updateShortBreakDuration(_ duration: TimeInterval) {
+        settings.shortBreakDuration = duration
+    }
+
+    func updateLongBreakDuration(_ duration: TimeInterval) {
+        settings.longBreakDuration = duration
+    }
+
+    func updateSessionsUntilLongBreak(_ count: Int) {
+        settings.sessionsUntilLongBreak = count
+    }
+
+    func toggleSound() {
+        settings.soundEnabled.toggle()
+    }
+
+    func toggleNotifications() {
+        settings.notificationsEnabled.toggle()
     }
 }

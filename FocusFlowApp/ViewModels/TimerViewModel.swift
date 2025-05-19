@@ -5,32 +5,45 @@ class TimerViewModel: BaseViewModel {
     struct State {
         var activity: Activity
         var timeRemaining: TimeInterval
-        var isRunning: Bool = false
-        var isBreak: Bool = false
-        var currentSession: Int = 1
-        var totalSessions: Int = 4
+        var isRunning: Bool
+        var isBreak: Bool
+        var completedSessions: Int
+        var currentPhase: TimerPhase
+    }
+
+    enum TimerPhase {
+        case work
+        case shortBreak
+        case longBreak
     }
 
     @Published private(set) var state: State
-    private var timer: AnyCancellable?
     var cancellables = Set<AnyCancellable>()
 
-    init(activity: Activity, settings: UserSettings = .default) {
+    private var timer: AnyCancellable?
+    private let settings: UserSettings
+
+    init(activity: Activity) {
+        self.settings = DataManager.shared.loadSettings()
         self.state = State(
             activity: activity,
-            timeRemaining: settings.pomodoroDuration
+            timeRemaining: settings.workDuration,
+            isRunning: false,
+            isBreak: false,
+            completedSessions: 0,
+            currentPhase: .work
         )
         setupBindings()
     }
 
     func setupBindings() {
-        // TODO: Setup sound bindings
+        // Timer bindings will be set up when needed
     }
 
     func startTimer() {
         guard !state.isRunning else { return }
-        state.isRunning = true
 
+        state.isRunning = true
         timer = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -41,14 +54,23 @@ class TimerViewModel: BaseViewModel {
     func pauseTimer() {
         state.isRunning = false
         timer?.cancel()
+        timer = nil
     }
 
     func resetTimer() {
-        state.isRunning = false
-        timer?.cancel()
-        state.timeRemaining = UserSettings.default.pomodoroDuration
+        pauseTimer()
+        state.timeRemaining = settings.workDuration
         state.isBreak = false
-        state.currentSession = 1
+        state.currentPhase = .work
+    }
+
+    func skipTimer() {
+        pauseTimer()
+        if state.isBreak {
+            startWorkPhase()
+        } else {
+            startBreakPhase()
+        }
     }
 
     private func updateTimer() {
@@ -61,35 +83,40 @@ class TimerViewModel: BaseViewModel {
     }
 
     private func handleTimerCompletion() {
-        state.isRunning = false
-        timer?.cancel()
+        pauseTimer()
 
         if state.isBreak {
-            // Break finished, start next session
-            state.isBreak = false
-            state.timeRemaining = UserSettings.default.pomodoroDuration
-            state.currentSession += 1
+            startWorkPhase()
         } else {
-            // Session finished, start break
-            state.isBreak = true
-            state.timeRemaining = state.currentSession % state.totalSessions == 0
-                ? UserSettings.default.longBreakDuration
-                : UserSettings.default.shortBreakDuration
+            state.completedSessions += 1
+            startBreakPhase()
         }
     }
 
-    func formattedTime() -> String {
-        let minutes = Int(state.timeRemaining) / 60
-        let seconds = Int(state.timeRemaining) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+    private func startWorkPhase() {
+        state.isBreak = false
+        state.currentPhase = .work
+        state.timeRemaining = settings.workDuration
+        startTimer()
     }
 
-    func progress() -> Double {
-        let total = state.isBreak
-            ? (state.currentSession % state.totalSessions == 0
-                ? UserSettings.default.longBreakDuration
-                : UserSettings.default.shortBreakDuration)
-            : UserSettings.default.pomodoroDuration
-        return 1 - (state.timeRemaining / total)
+    private func startBreakPhase() {
+        state.isBreak = true
+
+        if state.completedSessions % settings.sessionsUntilLongBreak == 0 {
+            state.currentPhase = .longBreak
+            state.timeRemaining = settings.longBreakDuration
+        } else {
+            state.currentPhase = .shortBreak
+            state.timeRemaining = settings.shortBreakDuration
+        }
+
+        startTimer()
+    }
+
+    func formattedTime(_ timeInterval: TimeInterval) -> String {
+        let minutes = Int(timeInterval) / 60
+        let seconds = Int(timeInterval) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 }

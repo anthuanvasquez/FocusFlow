@@ -9,21 +9,22 @@ struct TimerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 20) {
             // Activity Info
             VStack(spacing: 8) {
                 Text(viewModel.state.activity.name)
                     .font(.title)
                     .bold()
-                if let description = viewModel.state.activity.description {
-                    Text(description)
+
+                if !viewModel.state.activity.description.isEmpty {
+                    Text(viewModel.state.activity.description)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
             }
             .padding(.top)
 
-            // Timer Circle
+            // Timer Display
             ZStack {
                 Circle()
                     .stroke(lineWidth: 20)
@@ -31,64 +32,93 @@ struct TimerView: View {
                     .foregroundColor(.gray)
 
                 Circle()
-                    .trim(from: 0.0, to: viewModel.progress())
+                    .trim(from: 0.0, to: progress())
                     .stroke(style: StrokeStyle(lineWidth: 20, lineCap: .round, lineJoin: .round))
-                    .foregroundColor(viewModel.state.isBreak ? .green : .blue)
+                    .foregroundColor(timerColor())
                     .rotationEffect(Angle(degrees: 270.0))
-                    .animation(.linear, value: viewModel.progress())
+                    .animation(.linear, value: viewModel.state.timeRemaining)
 
                 VStack(spacing: 8) {
-                    Text(viewModel.formattedTime())
+                    Text(viewModel.formattedTime(viewModel.state.timeRemaining))
                         .font(.system(size: 60, weight: .bold, design: .rounded))
 
-                    Text(viewModel.state.isBreak ? "Break Time" : "Focus Time")
+                    Text(phaseText())
                         .font(.title3)
-                        .foregroundColor(.secondary)
-
-                    Text("Session \(viewModel.state.currentSession) of \(viewModel.state.totalSessions)")
-                        .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
             }
             .frame(width: 300, height: 300)
+            .padding()
 
             // Controls
             HStack(spacing: 40) {
-                Button {
-                    viewModel.resetTimer()
-                } label: {
+                Button(action: viewModel.resetTimer) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.title)
                 }
 
-                Button {
-                    if viewModel.state.isRunning {
-                        viewModel.pauseTimer()
-                    } else {
-                        viewModel.startTimer()
-                    }
-                } label: {
+                Button(action: viewModel.state.isRunning ? viewModel.pauseTimer : viewModel.startTimer) {
                     Image(systemName: viewModel.state.isRunning ? "pause.fill" : "play.fill")
                         .font(.title)
-                        .frame(width: 60, height: 60)
-                        .background(viewModel.state.isRunning ? .red : .green)
+                        .frame(width: 80, height: 80)
+                        .background(timerColor())
                         .foregroundColor(.white)
                         .clipShape(Circle())
                 }
 
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
+                Button(action: viewModel.skipTimer) {
+                    Image(systemName: "forward.fill")
                         .font(.title)
                 }
             }
-            .padding(.bottom)
+            .padding()
+
+            Spacer()
         }
-        .padding()
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("End") {
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    private func progress() -> Double {
+        let total = viewModel.state.isBreak
+            ? (viewModel.state.currentPhase == .longBreak
+                ? DataManager.shared.loadSettings().longBreakDuration
+                : DataManager.shared.loadSettings().shortBreakDuration)
+            : DataManager.shared.loadSettings().workDuration
+        return 1 - (viewModel.state.timeRemaining / total)
+    }
+
+    private func timerColor() -> Color {
+        switch viewModel.state.currentPhase {
+        case .work:
+            return .blue
+        case .shortBreak:
+            return .green
+        case .longBreak:
+            return .purple
+        }
+    }
+
+    private func phaseText() -> String {
+        switch viewModel.state.currentPhase {
+        case .work:
+            return "Focus Time"
+        case .shortBreak:
+            return "Short Break"
+        case .longBreak:
+            return "Long Break"
+        }
     }
 }
 
 #Preview {
-    TimerView(activity: Activity(name: "Coding", description: "Work on the FocusFlow app"))
+    NavigationView {
+        TimerView(activity: Activity(name: "Coding", description: "Working on the FocusFlow app"))
+    }
 }

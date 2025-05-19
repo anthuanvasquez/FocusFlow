@@ -22,42 +22,49 @@ class HomeViewModel: BaseViewModel {
     }
 
     func setupBindings() {
-        // TODO: Setup data bindings for persistence
+        // Save activities whenever they change
+        $state
+            .map { $0.activities }
+            .sink { activities in
+                DataManager.shared.saveActivities(activities)
+            }
+            .store(in: &cancellables)
     }
 
     func selectActivity(_ activity: Activity) {
         state.selectedActivity = activity
     }
 
-    func startSession() {
-        guard let activity = state.selectedActivity else { return }
+    func startSession(for activity: Activity) {
         // TODO: Implement session start logic
     }
 
     func loadActivities() {
         state.isLoading = true
-        // TODO: Load activities from persistence
-        // For now, we'll add some sample activities
-        state.activities = [
-            Activity(name: "Coding", description: "Work on the FocusFlow app"),
-            Activity(name: "Reading", description: "Read technical documentation"),
-            Activity(name: "Exercise", description: "30 minutes workout")
-        ]
+        state.activities = DataManager.shared.loadActivities()
+
+        // Add sample data if no activities exist
+        if state.activities.isEmpty {
+            state.activities = [
+                Activity(name: "Coding", description: "Programming and development work"),
+                Activity(name: "Reading", description: "Reading books and articles"),
+                Activity(name: "Exercise", description: "Physical activity and workouts")
+            ]
+        }
+
         state.isLoading = false
     }
 
     func addActivity() {
         guard !newActivityName.isEmpty else { return }
 
-        let newActivity = Activity(
+        let activity = Activity(
             name: newActivityName,
-            description: newActivityDescription.isEmpty ? nil : newActivityDescription
+            description: newActivityDescription
         )
 
-        state.activities.append(newActivity)
-        newActivityName = ""
-        newActivityDescription = ""
-        isShowingAddActivity = false
+        state.activities.append(activity)
+        cancelAddActivity()
     }
 
     func deleteActivity(_ activity: Activity) {

@@ -2,97 +2,88 @@ import SwiftUI
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
+    @Environment(\.dismiss) private var dismiss
+
+    private let timeFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
 
     var body: some View {
-        Form {
-            Section("Pomodoro Duration") {
-                DurationSlider(
-                    value: Binding(
-                        get: { viewModel.state.settings.pomodoroDuration },
-                        set: { viewModel.updatePomodoroDuration($0) }
-                    ),
-                    range: 5...60,
-                    title: "Focus Time"
-                )
-            }
+        NavigationView {
+            Form {
+                Section("Timer Settings") {
+                    Stepper(
+                        "Work Duration: \(timeFormatter.string(from: viewModel.settings.workDuration) ?? "")",
+                        value: Binding(
+                            get: { Int(viewModel.settings.workDuration / 60) },
+                            set: { viewModel.updateWorkDuration(TimeInterval($0 * 60)) }
+                        ),
+                        in: 1...60
+                    )
 
-            Section("Break Duration") {
-                DurationSlider(
-                    value: Binding(
-                        get: { viewModel.state.settings.shortBreakDuration },
-                        set: { viewModel.updateShortBreakDuration($0) }
-                    ),
-                    range: 1...15,
-                    title: "Short Break"
-                )
+                    Stepper(
+                        "Short Break: \(timeFormatter.string(from: viewModel.settings.shortBreakDuration) ?? "")",
+                        value: Binding(
+                            get: { Int(viewModel.settings.shortBreakDuration / 60) },
+                            set: { viewModel.updateShortBreakDuration(TimeInterval($0 * 60)) }
+                        ),
+                        in: 1...30
+                    )
 
-                DurationSlider(
-                    value: Binding(
-                        get: { viewModel.state.settings.longBreakDuration },
-                        set: { viewModel.updateLongBreakDuration($0) }
-                    ),
-                    range: 5...30,
-                    title: "Long Break"
-                )
+                    Stepper(
+                        "Long Break: \(timeFormatter.string(from: viewModel.settings.longBreakDuration) ?? "")",
+                        value: Binding(
+                            get: { Int(viewModel.settings.longBreakDuration / 60) },
+                            set: { viewModel.updateLongBreakDuration(TimeInterval($0 * 60)) }
+                        ),
+                        in: 5...60
+                    )
 
-                Stepper(
-                    "Sessions until long break: \(viewModel.state.settings.sessionsUntilLongBreak)",
-                    value: Binding(
-                        get: { viewModel.state.settings.sessionsUntilLongBreak },
-                        set: { viewModel.updateSessionsUntilLongBreak($0) }
-                    ),
-                    in: 2...6
-                )
-            }
+                    Stepper(
+                        "Sessions until Long Break: \(viewModel.settings.sessionsUntilLongBreak)",
+                        value: Binding(
+                            get: { viewModel.settings.sessionsUntilLongBreak },
+                            set: { viewModel.updateSessionsUntilLongBreak($0) }
+                        ),
+                        in: 2...8
+                    )
+                }
 
-            Section("Sound") {
-                Slider(
-                    value: Binding(
-                        get: { viewModel.state.settings.soundVolume },
-                        set: { viewModel.updateSoundVolume($0) }
-                    ),
-                    in: 0...1
-                ) {
-                    Text("Volume")
+                Section("Notifications") {
+                    Toggle("Sound", isOn: Binding(
+                        get: { viewModel.settings.soundEnabled },
+                        set: { _ in viewModel.toggleSound() }
+                    ))
+
+                    Toggle("Notifications", isOn: Binding(
+                        get: { viewModel.settings.notificationsEnabled },
+                        set: { _ in viewModel.toggleNotifications() }
+                    ))
+                }
+
+                Section {
+                    Button("Reset to Defaults") {
+                        viewModel.resetToDefaults()
+                    }
+                    .foregroundColor(.red)
                 }
             }
-
-            Section {
-                Button("Reset to Defaults") {
-                    viewModel.resetToDefaults()
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
                 }
-                .foregroundColor(.red)
-            }
-        }
-        .navigationTitle("Settings")
-    }
-}
-
-struct DurationSlider: View {
-    @Binding var value: TimeInterval
-    let range: ClosedRange<Double>
-    let title: String
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
-            HStack {
-                Slider(
-                    value: Binding(
-                        get: { value / 60 },
-                        set: { value = $0 * 60 }
-                    ),
-                    in: range
-                )
-                Text("\(Int(value / 60)) min")
-                    .frame(width: 50)
             }
         }
     }
 }
 
 #Preview {
-    NavigationView {
-        SettingsView()
-    }
+    SettingsView()
 }
