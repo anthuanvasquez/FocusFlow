@@ -4,21 +4,27 @@ class DataManager {
     static let shared = DataManager()
 
     private let userDefaults = UserDefaults.standard
-    private let activitiesKey = "activities"
-    private let sessionsKey = "sessions"
-    private let settingsKey = "settings"
+    private let fileManager = FileManager.default
+
+    private var documentsDirectory: URL {
+        fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+
+    private var activitiesURL: URL {
+        documentsDirectory.appendingPathComponent("activities.json")
+    }
+
+    private var sessionsURL: URL {
+        documentsDirectory.appendingPathComponent("sessions.json")
+    }
+
+    private var settingsURL: URL {
+        documentsDirectory.appendingPathComponent("settings.json")
+    }
 
     private init() {}
 
     // MARK: - Activities
-
-    func loadActivities() -> [Activity] {
-        guard let data = userDefaults.data(forKey: activitiesKey),
-              let activities = try? JSONDecoder().decode([Activity].self, from: data) else {
-            return []
-        }
-        return activities
-    }
 
     func saveActivity(_ activity: Activity) {
         var activities = loadActivities()
@@ -27,66 +33,67 @@ class DataManager {
         } else {
             activities.append(activity)
         }
-        saveActivities(activities)
+        saveToFile(activities, to: activitiesURL)
     }
 
-    func saveActivities(_ activities: [Activity]) {
-        if let data = try? JSONEncoder().encode(activities) {
-            userDefaults.set(data, forKey: activitiesKey)
-        }
+    func loadActivities() -> [Activity] {
+        loadFromFile([Activity].self, from: activitiesURL) ?? []
     }
 
     func deleteActivity(_ activity: Activity) {
         var activities = loadActivities()
         activities.removeAll { $0.id == activity.id }
-        saveActivities(activities)
+        saveToFile(activities, to: activitiesURL)
     }
 
     // MARK: - Sessions
 
-    func loadSessions() -> [Session] {
-        guard let data = userDefaults.data(forKey: sessionsKey),
-              let sessions = try? JSONDecoder().decode([Session].self, from: data) else {
-            return []
-        }
-        return sessions
-    }
-
     func saveSession(_ session: Session) {
         var sessions = loadSessions()
-        if let index = sessions.firstIndex(where: { $0.id == session.id }) {
-            sessions[index] = session
-        } else {
-            sessions.append(session)
-        }
-        saveSessions(sessions)
+        sessions.append(session)
+        saveToFile(sessions, to: sessionsURL)
     }
 
-    func saveSessions(_ sessions: [Session]) {
-        if let data = try? JSONEncoder().encode(sessions) {
-            userDefaults.set(data, forKey: sessionsKey)
-        }
+    func loadSessions() -> [Session] {
+        loadFromFile([Session].self, from: sessionsURL) ?? []
     }
 
     func deleteSession(_ session: Session) {
         var sessions = loadSessions()
         sessions.removeAll { $0.id == session.id }
-        saveSessions(sessions)
+        saveToFile(sessions, to: sessionsURL)
     }
 
     // MARK: - Settings
 
-    func loadSettings() -> UserSettings {
-        guard let data = userDefaults.data(forKey: settingsKey),
-              let settings = try? JSONDecoder().decode(UserSettings.self, from: data) else {
-            return .default
-        }
-        return settings
+    func saveSettings(_ settings: UserSettings) {
+        saveToFile(settings, to: settingsURL)
     }
 
-    func saveSettings(_ settings: UserSettings) {
-        if let data = try? JSONEncoder().encode(settings) {
-            userDefaults.set(data, forKey: settingsKey)
+    func loadSettings() -> UserSettings {
+        loadFromFile(UserSettings.self, from: settingsURL) ?? UserSettings.default
+    }
+
+    // MARK: - Private Helpers
+
+    private func saveToFile<T: Encodable>(_ data: T, to url: URL) {
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(data)
+            try data.write(to: url)
+        } catch {
+            print("Error saving data: \(error)")
+        }
+    }
+
+    private func loadFromFile<T: Decodable>(_ type: T.Type, from url: URL) -> T? {
+        do {
+            let data = try Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            return try decoder.decode(type, from: data)
+        } catch {
+            print("Error loading data: \(error)")
+            return nil
         }
     }
 }

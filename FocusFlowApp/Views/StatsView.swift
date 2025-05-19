@@ -2,79 +2,117 @@ import SwiftUI
 
 struct StatsView: View {
     @StateObject private var viewModel = StatsViewModel()
-    @State private var selectedDate = Date()
-
-    private let calendar = Calendar.current
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter
-    }()
 
     var body: some View {
-        List {
-            // Streak Section
-            Section("Streak") {
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("Current Streak")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Text("\(viewModel.state.currentStreak) days")
-                            .font(.title2)
-                            .bold()
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing) {
-                        Text("Best Streak")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Text("\(viewModel.state.bestStreak) days")
-                            .font(.title2)
-                            .bold()
+        NavigationView {
+            List {
+                // Streak Section
+                Section(header: Text("Streaks")) {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("Current Streak")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text("\(viewModel.currentStreak) days")
+                                .font(.title2)
+                                .bold()
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing) {
+                            Text("Best Streak")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text("\(viewModel.bestStreak) days")
+                                .font(.title2)
+                                .bold()
+                        }
                     }
                 }
-            }
 
-            // Total Focus Time
-            Section("Total Focus Time") {
-                Text(viewModel.formattedFocusTime(viewModel.state.totalFocusTime))
-                    .font(.title2)
-                    .bold()
-            }
+                // Focus Time Section
+                Section(header: Text("Focus Time")) {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("Total Focus Time")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text(formatTime(viewModel.totalFocusTime))
+                                .font(.title2)
+                                .bold()
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing) {
+                            Text("Completed Sessions")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text("\(viewModel.completedSessions)")
+                                .font(.title2)
+                                .bold()
+                        }
+                    }
+                }
 
-            // Daily Stats
-            Section("Daily Stats") {
-                DatePicker(
-                    "Select Date",
-                    selection: $selectedDate,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.compact)
-
-                let sessions = viewModel.sessionsForDate(selectedDate)
-                if sessions.isEmpty {
-                    Text("No sessions on this day")
-                        .foregroundColor(.secondary)
-                } else {
-                    ForEach(sessions) { session in
-                        HStack {
-                            Text(dateFormatter.string(from: session.startTime))
-                            Spacer()
-                            Text(viewModel.formattedFocusTime(session.duration))
+                // Sessions Section
+                Section(header: Text("Recent Sessions")) {
+                    ForEach(viewModel.sessions) { session in
+                        SessionRow(session: session)
+                    }
+                    .onDelete { indexSet in
+                        indexSet.forEach { index in
+                            viewModel.deleteSession(viewModel.sessions[index])
                         }
                     }
                 }
             }
+            .navigationTitle("Statistics")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        viewModel.clearAllData()
+                    }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
         }
-        .navigationTitle("Statistics")
+    }
+
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) / 60 % 60
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+}
+
+struct SessionRow: View {
+    let session: Session
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(session.startTime, style: .date)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Text(formatTime(session.duration))
+                .font(.headline)
+        }
+    }
+
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) / 60 % 60
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
     }
 }
 
 #Preview {
-    NavigationView {
-        StatsView()
-    }
+    StatsView()
 }

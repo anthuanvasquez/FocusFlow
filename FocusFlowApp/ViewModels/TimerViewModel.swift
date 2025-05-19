@@ -30,11 +30,15 @@ class TimerViewModel: BaseViewModel {
     private var timer: AnyCancellable?
     private let settings: UserSettings
     private let soundService: SoundService
+    private let notificationService: NotificationService
 
-    init(activity: Activity, soundService: SoundService = .shared) {
+    init(activity: Activity,
+         soundService: SoundService = .shared,
+         notificationService: NotificationService = .shared) {
         self.activity = activity
         self.settings = DataManager.shared.loadSettings()
         self.soundService = soundService
+        self.notificationService = notificationService
 
         self.timeRemaining = settings.workDuration
         self.isRunning = false
@@ -76,12 +80,20 @@ class TimerViewModel: BaseViewModel {
         if isSoundEnabled, let sound = currentSound {
             soundService.playSound(sound)
         }
+
+        // Schedule notification for timer end
+        notificationService.scheduleTimerNotification(
+            for: activity,
+            timeRemaining: timeRemaining,
+            isBreak: isBreak
+        )
     }
 
     func pause() {
         isRunning = false
         timer?.cancel()
         soundService.stopAllSounds()
+        notificationService.cancelTimerNotification(for: activity.id)
     }
 
     func toggleTimer() {
@@ -154,6 +166,9 @@ class TimerViewModel: BaseViewModel {
 
         currentSound = Sound.breakSounds.randomElement()
         start()
+
+        // Schedule notification for break end
+        notificationService.scheduleBreakEndNotification(timeRemaining: timeRemaining)
     }
 
     private func saveSession() {
