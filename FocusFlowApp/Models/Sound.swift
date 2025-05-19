@@ -19,6 +19,16 @@ struct Sound: Identifiable, Codable, Equatable {
         return lhs.id == rhs.id
     }
 
+    init(id: UUID = UUID(), name: String, category: SoundCategory, filename: String, isPremium: Bool = false, volume: Float = 1.0, isEnabled: Bool = true) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.filename = filename
+        self.isPremium = isPremium
+        self.volume = volume
+        self.isEnabled = isEnabled
+    }
+
     static let defaultSounds: [Sound] = [
         // Ambient Sounds
         Sound(id: UUID(), name: "Rain", category: .ambient, filename: "rain", isPremium: false, volume: 0.7, isEnabled: true),
@@ -37,5 +47,25 @@ struct Sound: Identifiable, Codable, Equatable {
         Sound(id: UUID(), name: "Bell", category: .notification, filename: "bell", isPremium: false, volume: 1.0, isEnabled: true),
         Sound(id: UUID(), name: "Chime", category: .notification, filename: "chime", isPremium: false, volume: 1.0, isEnabled: true),
         Sound(id: UUID(), name: "Gong", category: .notification, filename: "gong", isPremium: true, volume: 1.0, isEnabled: true)
+    ]
+
+    static let workSounds: [Sound] = [
+        Sound(name: "Rain", category: .ambient, filename: "rain"),
+        Sound(name: "Forest", category: .ambient, filename: "forest"),
+        Sound(name: "Ocean", category: .ambient, filename: "ocean"),
+        Sound(name: "Cafe", category: .ambient, filename: "cafe"),
+        Sound(name: "White Noise", category: .ambient, filename: "white_noise")
+    ]
+
+    static let breakSounds: [Sound] = [
+        Sound(name: "Lofi Beats", category: .music, filename: "lofi_beats"),
+        Sound(name: "Piano Jazz", category: .music, filename: "piano_jazz"),
+        Sound(name: "Nature Sounds", category: .music, filename: "nature_sounds")
+    ]
+
+    static let notificationSounds: [Sound] = [
+        Sound(name: "Bell", category: .notification, filename: "bell"),
+        Sound(name: "Chime", category: .notification, filename: "chime"),
+        Sound(name: "Gong", category: .notification, filename: "gong")
     ]
 }
