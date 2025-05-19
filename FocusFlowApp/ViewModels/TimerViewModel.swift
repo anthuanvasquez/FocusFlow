@@ -2,6 +2,13 @@ import Foundation
 import Combine
 
 class TimerViewModel: BaseViewModel {
+    @Published private(set) var state: State
+    var cancellables = Set<AnyCancellable>()
+
+    private var timer: AnyCancellable?
+    private let settings: UserSettings
+    private let dataManager = DataManager.shared
+
     struct State {
         var activity: Activity
         var timeRemaining: TimeInterval
@@ -17,14 +24,8 @@ class TimerViewModel: BaseViewModel {
         case longBreak
     }
 
-    @Published private(set) var state: State
-    var cancellables = Set<AnyCancellable>()
-
-    private var timer: AnyCancellable?
-    private let settings: UserSettings
-
     init(activity: Activity) {
-        self.settings = DataManager.shared.loadSettings()
+        self.settings = dataManager.loadSettings()
         self.state = State(
             activity: activity,
             timeRemaining: settings.workDuration,

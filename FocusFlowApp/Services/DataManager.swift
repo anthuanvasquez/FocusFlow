@@ -12,12 +12,6 @@ class DataManager {
 
     // MARK: - Activities
 
-    func saveActivities(_ activities: [Activity]) {
-        if let encoded = try? JSONEncoder().encode(activities) {
-            userDefaults.set(encoded, forKey: activitiesKey)
-        }
-    }
-
     func loadActivities() -> [Activity] {
         guard let data = userDefaults.data(forKey: activitiesKey),
               let activities = try? JSONDecoder().decode([Activity].self, from: data) else {
@@ -26,13 +20,29 @@ class DataManager {
         return activities
     }
 
-    // MARK: - Sessions
+    func saveActivity(_ activity: Activity) {
+        var activities = loadActivities()
+        if let index = activities.firstIndex(where: { $0.id == activity.id }) {
+            activities[index] = activity
+        } else {
+            activities.append(activity)
+        }
+        saveActivities(activities)
+    }
 
-    func saveSessions(_ sessions: [Session]) {
-        if let encoded = try? JSONEncoder().encode(sessions) {
-            userDefaults.set(encoded, forKey: sessionsKey)
+    func saveActivities(_ activities: [Activity]) {
+        if let data = try? JSONEncoder().encode(activities) {
+            userDefaults.set(data, forKey: activitiesKey)
         }
     }
+
+    func deleteActivity(_ activity: Activity) {
+        var activities = loadActivities()
+        activities.removeAll { $0.id == activity.id }
+        saveActivities(activities)
+    }
+
+    // MARK: - Sessions
 
     func loadSessions() -> [Session] {
         guard let data = userDefaults.data(forKey: sessionsKey),
@@ -42,13 +52,29 @@ class DataManager {
         return sessions
     }
 
-    // MARK: - Settings
+    func saveSession(_ session: Session) {
+        var sessions = loadSessions()
+        if let index = sessions.firstIndex(where: { $0.id == session.id }) {
+            sessions[index] = session
+        } else {
+            sessions.append(session)
+        }
+        saveSessions(sessions)
+    }
 
-    func saveSettings(_ settings: UserSettings) {
-        if let encoded = try? JSONEncoder().encode(settings) {
-            userDefaults.set(encoded, forKey: settingsKey)
+    func saveSessions(_ sessions: [Session]) {
+        if let data = try? JSONEncoder().encode(sessions) {
+            userDefaults.set(data, forKey: sessionsKey)
         }
     }
+
+    func deleteSession(_ session: Session) {
+        var sessions = loadSessions()
+        sessions.removeAll { $0.id == session.id }
+        saveSessions(sessions)
+    }
+
+    // MARK: - Settings
 
     func loadSettings() -> UserSettings {
         guard let data = userDefaults.data(forKey: settingsKey),
@@ -56,5 +82,11 @@ class DataManager {
             return .default
         }
         return settings
+    }
+
+    func saveSettings(_ settings: UserSettings) {
+        if let data = try? JSONEncoder().encode(settings) {
+            userDefaults.set(data, forKey: settingsKey)
+        }
     }
 }

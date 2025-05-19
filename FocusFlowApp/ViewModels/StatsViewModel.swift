@@ -2,19 +2,28 @@ import Foundation
 import Combine
 
 class StatsViewModel: BaseViewModel {
+    @Published private(set) var state: State
+    var cancellables = Set<AnyCancellable>()
+    private let dataManager = DataManager.shared
+
     struct State {
-        var sessions: [Session] = []
-        var currentStreak: Int = 0
-        var bestStreak: Int = 0
-        var totalFocusTime: TimeInterval = 0
-        var isLoading: Bool = false
+        var sessions: [Session]
+        var currentStreak: Int
+        var bestStreak: Int
+        var totalFocusTime: TimeInterval
+        var isLoading: Bool
         var error: Error?
     }
 
-    @Published private(set) var state = State()
-    var cancellables = Set<AnyCancellable>()
-
     init() {
+        self.state = State(
+            sessions: [],
+            currentStreak: 0,
+            bestStreak: 0,
+            totalFocusTime: 0,
+            isLoading: false,
+            error: nil
+        )
         setupBindings()
         loadStats()
     }
@@ -31,12 +40,9 @@ class StatsViewModel: BaseViewModel {
 
     func loadStats() {
         state.isLoading = true
-        state.sessions = DataManager.shared.loadSessions()
-
-        // Calculate streaks and total time
+        state.sessions = dataManager.loadSessions()
         calculateStreaks()
         calculateTotalFocusTime()
-
         state.isLoading = false
     }
 

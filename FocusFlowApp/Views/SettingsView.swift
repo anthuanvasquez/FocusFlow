@@ -14,62 +14,9 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section("Timer Settings") {
-                    Stepper(
-                        "Work Duration: \(timeFormatter.string(from: viewModel.settings.workDuration) ?? "")",
-                        value: Binding(
-                            get: { Int(viewModel.settings.workDuration / 60) },
-                            set: { viewModel.updateWorkDuration(TimeInterval($0 * 60)) }
-                        ),
-                        in: 1...60
-                    )
-
-                    Stepper(
-                        "Short Break: \(timeFormatter.string(from: viewModel.settings.shortBreakDuration) ?? "")",
-                        value: Binding(
-                            get: { Int(viewModel.settings.shortBreakDuration / 60) },
-                            set: { viewModel.updateShortBreakDuration(TimeInterval($0 * 60)) }
-                        ),
-                        in: 1...30
-                    )
-
-                    Stepper(
-                        "Long Break: \(timeFormatter.string(from: viewModel.settings.longBreakDuration) ?? "")",
-                        value: Binding(
-                            get: { Int(viewModel.settings.longBreakDuration / 60) },
-                            set: { viewModel.updateLongBreakDuration(TimeInterval($0 * 60)) }
-                        ),
-                        in: 5...60
-                    )
-
-                    Stepper(
-                        "Sessions until Long Break: \(viewModel.settings.sessionsUntilLongBreak)",
-                        value: Binding(
-                            get: { viewModel.settings.sessionsUntilLongBreak },
-                            set: { viewModel.updateSessionsUntilLongBreak($0) }
-                        ),
-                        in: 2...8
-                    )
-                }
-
-                Section("Notifications") {
-                    Toggle("Sound", isOn: Binding(
-                        get: { viewModel.settings.soundEnabled },
-                        set: { _ in viewModel.toggleSound() }
-                    ))
-
-                    Toggle("Notifications", isOn: Binding(
-                        get: { viewModel.settings.notificationsEnabled },
-                        set: { _ in viewModel.toggleNotifications() }
-                    ))
-                }
-
-                Section {
-                    Button("Reset to Defaults") {
-                        viewModel.resetToDefaults()
-                    }
-                    .foregroundColor(.red)
-                }
+                TimerSettingsSection(viewModel: viewModel)
+                SoundSettingsSection(viewModel: viewModel)
+                ResetSection(viewModel: viewModel)
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -84,6 +31,94 @@ struct SettingsView: View {
     }
 }
 
+private struct TimerSettingsSection: View {
+    @ObservedObject var viewModel: SettingsViewModel
+
+    var body: some View {
+        Section(header: Text("Timer Settings")) {
+            DurationRow(
+                title: "Work Duration",
+                value: $viewModel.workDuration,
+                range: 300...3600,
+                step: 300
+            )
+
+            DurationRow(
+                title: "Short Break",
+                value: $viewModel.shortBreakDuration,
+                range: 60...600,
+                step: 60
+            )
+
+            DurationRow(
+                title: "Long Break",
+                value: $viewModel.longBreakDuration,
+                range: 300...1800,
+                step: 300
+            )
+
+            HStack {
+                Text("Sessions until Long Break")
+                Spacer()
+                Text("\(viewModel.sessionsUntilLongBreak)")
+            }
+            Stepper("", value: $viewModel.sessionsUntilLongBreak, in: 2...6)
+        }
+    }
+}
+
+private struct DurationRow: View {
+    let title: String
+    @Binding var value: TimeInterval
+    let range: ClosedRange<TimeInterval>
+    let step: TimeInterval
+
+    var body: some View {
+        VStack {
+            HStack {
+                Text(title)
+                Spacer()
+                Text("\(Int(value / 60)) min")
+            }
+            Slider(value: $value, in: range, step: step)
+        }
+    }
+}
+
+private struct SoundSettingsSection: View {
+    @ObservedObject var viewModel: SettingsViewModel
+
+    var body: some View {
+        Section(header: Text("Sound Settings")) {
+            NavigationLink {
+                SoundSettingsView()
+            } label: {
+                HStack {
+                    Image(systemName: "speaker.wave.2")
+                    Text("Notification Sound")
+                }
+            }
+
+            Toggle("Enable Notifications", isOn: $viewModel.notificationsEnabled)
+        }
+    }
+}
+
+private struct ResetSection: View {
+    @ObservedObject var viewModel: SettingsViewModel
+
+    var body: some View {
+        Section {
+            Button("Reset to Defaults") {
+                viewModel.resetToDefaults()
+            }
+            .foregroundColor(.red)
+        }
+    }
+}
+
 #Preview {
-    SettingsView()
+    NavigationView {
+        SettingsView()
+    }
 }
