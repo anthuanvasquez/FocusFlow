@@ -1,55 +1,102 @@
 import Foundation
 import Combine
 
-class SoundSettingsViewModel: BaseViewModel {
+class SoundSettingsViewModel: ObservableObject {
     @Published private(set) var state: State
-    @Published var volume: Float = 0.5
+    @Published var selectedPreset: SoundPreset?
+    @Published var isMuted = false
 
     var cancellables = Set<AnyCancellable>()
     private let soundService = SoundService.shared
     private let dataManager = DataManager.shared
 
     struct State {
-        var selectedSound: Sound
-        var isPlaying: Bool
+        var presets: [SoundPreset]
+        var ambientSounds: [Sound]
+        var musicSounds: [Sound]
+        var selectedAmbientSound: Sound?
+        var selectedMusicSound: Sound?
+        var isLoading: Bool
+        var error: Error?
     }
 
     init() {
-        let settings = dataManager.loadSettings()
+        let presets = SoundPreset.defaultPresets
+        let ambientSounds = Sound.defaultSounds.filter { $0.category == .ambient }
+        let musicSounds = Sound.defaultSounds.filter { $0.category == .music }
+
         self.state = State(
-            selectedSound: .bell,
-            isPlaying: false
+            presets: presets,
+            ambientSounds: ambientSounds,
+            musicSounds: musicSounds,
+            selectedAmbientSound: nil,
+            selectedMusicSound: nil,
+            isLoading: false,
+            error: nil
         )
         setupBindings()
     }
 
     func setupBindings() {
-        $volume
-            .sink { [weak self] newVolume in
-                self?.soundService.setVolume(newVolume)
+        // Observe changes in selected sounds
+        $state
+            .map { $0.selectedAmbientSound }
+            .sink { [weak self] sound in
+                if let sound = sound {
+                    self?.soundService.playSound(sound)
+                }
+            }
+            .store(in: &cancellables)
+
+        $state
+            .map { $0.selectedMusicSound }
+            .sink { [weak self] sound in
+                if let sound = sound {
+                    self?.soundService.playSound(sound)
+                }
             }
             .store(in: &cancellables)
     }
 
-    func selectSound(_ sound: Sound) {
-        state.selectedSound = sound
-        dataManager.saveSettings(UserSettings(
-            workDuration: dataManager.loadSettings().workDuration,
-            shortBreakDuration: dataManager.loadSettings().shortBreakDuration,
-            longBreakDuration: dataManager.loadSettings().longBreakDuration,
-            sessionsUntilLongBreak: dataManager.loadSettings().sessionsUntilLongBreak,
-            soundEnabled: true,
-            notificationsEnabled: dataManager.loadSettings().notificationsEnabled
-        ))
+    func selectPreset(_ preset: SoundPreset) {
+        selectedPreset = preset
+        state.selectedAmbientSound = preset.ambientSound
+        state.selectedMusicSound = preset.musicSound
     }
 
-    func previewSound() {
-        if state.isPlaying {
-            soundService.stopSound()
-            state.isPlaying = false
+    func selectAmbientSound(_ sound: Sound) {
+        state.selectedAmbientSound = sound
+        state.selectedMusicSound = nil
+        selectedPreset = nil
+    }
+
+    func selectMusicSound(_ sound: Sound) {
+        state.selectedMusicSound = sound
+    }
+
+    func toggleMute() {
+        isMuted.toggle()
+        if isMuted {
+            soundService.mute()
         } else {
-            soundService.playSound(state.selectedSound)
-            state.isPlaying = true
+            soundService.unmute()
+            if let ambient = state.selectedAmbientSound {
+                soundService.playSound(ambient)
+            }
+            if let music = state.selectedMusicSound {
+                soundService.playSound(music)
+            }
         }
+    }
+
+    func stopAllSounds() {
+        soundService.stopAllSounds()
+        state.selectedAmbientSound = nil
+        state.selectedMusicSound = nil
+        selectedPreset = nil
+    }
+
+    func setVolume(_ volume: Float, for sound: Sound) {
+        soundService.setVolume(volume, for: sound)
     }
 }
