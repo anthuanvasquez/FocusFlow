@@ -14,47 +14,27 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Timer Settings")) {
-                    Stepper("Work Duration: \(Int(viewModel.workDuration / 60)) min", value: $viewModel.workDuration, in: 5...60, step: 5) { _ in
-                        viewModel.workDuration *= 60
-                    }
-
-                    Stepper("Short Break: \(Int(viewModel.shortBreakDuration / 60)) min", value: $viewModel.shortBreakDuration, in: 1...15, step: 1) { _ in
-                        viewModel.shortBreakDuration *= 60
-                    }
-
-                    Stepper("Long Break: \(Int(viewModel.longBreakDuration / 60)) min", value: $viewModel.longBreakDuration, in: 5...30, step: 5) { _ in
-                        viewModel.longBreakDuration *= 60
-                    }
-
-                    Stepper("Sessions until Long Break: \(viewModel.sessionsUntilLongBreak)", value: $viewModel.sessionsUntilLongBreak, in: 2...6)
-                }
-
-                Section(header: Text("Appearance")) {
+                Section("Theme") {
                     Picker("Theme", selection: $viewModel.theme) {
                         ForEach(Theme.allCases, id: \.self) { theme in
-                            Text(theme.displayName)
+                            Label(theme.displayName, systemImage: theme.icon)
                                 .tag(theme)
                         }
                     }
                 }
 
-                Section(header: Text("Notifications")) {
-                    Toggle("Enable Notifications", isOn: $viewModel.notificationsEnabled)
+                Section("Timer Settings") {
+                    Stepper("Work Duration: \(Int(viewModel.workDuration / 60)) min", value: $viewModel.workDuration, in: 300...3600, step: 300)
+                    Stepper("Short Break: \(Int(viewModel.shortBreakDuration / 60)) min", value: $viewModel.shortBreakDuration, in: 60...900, step: 60)
+                    Stepper("Long Break: \(Int(viewModel.longBreakDuration / 60)) min", value: $viewModel.longBreakDuration, in: 300...1800, step: 300)
+                    Stepper("Sessions until Long Break: \(viewModel.sessionsUntilLongBreak)", value: $viewModel.sessionsUntilLongBreak, in: 2...6)
                 }
 
-                Section(header: Text("Sound")) {
-                    Toggle("Enable Sound", isOn: $viewModel.soundEnabled)
+                Section("Sound Settings") {
+                    Toggle("Enable Sounds", isOn: $viewModel.soundEnabled)
                     NavigationLink("Sound Settings") {
                         SoundSettingsView()
                     }
-                }
-
-                Section {
-                    Button("Reset to Defaults") {
-                        viewModel.resetToDefaults()
-                    }
-                    .foregroundColor(.red)
                 }
             }
             .navigationTitle("Settings")
