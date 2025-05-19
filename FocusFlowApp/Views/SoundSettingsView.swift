@@ -51,11 +51,11 @@ struct SoundSettingsView: View {
             }
             .navigationTitle("Sound Settings")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
+//                ToolbarItem(placement: .navigationBarLeading) {
+//                    Button("Done") {
+//                        dismiss()
+//                    }
+//                }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {

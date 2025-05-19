@@ -2,24 +2,18 @@ import Foundation
 import Combine
 
 class HomeViewModel: BaseViewModel {
-    @Published private(set) var state: State
-    @Published var isShowingAddActivity = false
-    @Published var newActivityName = ""
-    @Published var newActivityDescription = ""
-
     var cancellables = Set<AnyCancellable>()
-    private let dataManager = DataManager.shared
 
-    struct State {
-        var activities: [Activity]
-        var isLoading: Bool
-        var error: Error?
-    }
+    @Published var activities: [Activity] = []
+    @Published var newActivityName: String = ""
+    @Published var newActivityDescription: String = ""
 
-    init() {
-        self.state = State(activities: [], isLoading: false, error: nil)
-        setupBindings()
+    private let dataManager: DataManager
+
+    init(dataManager: DataManager = .shared) {
+        self.dataManager = dataManager
         loadActivities()
+        setupBindings()
     }
 
     func setupBindings() {
@@ -27,9 +21,7 @@ class HomeViewModel: BaseViewModel {
     }
 
     func loadActivities() {
-        state.isLoading = true
-        state.activities = dataManager.loadActivities()
-        state.isLoading = false
+        activities = dataManager.loadActivities()
     }
 
     func addActivity() {
@@ -38,22 +30,13 @@ class HomeViewModel: BaseViewModel {
             description: newActivityDescription
         )
         dataManager.saveActivity(activity)
-        loadActivities()
-        cancelAddActivity()
+        activities.append(activity)
+        newActivityName = ""
+        newActivityDescription = ""
     }
 
     func deleteActivity(_ activity: Activity) {
         dataManager.deleteActivity(activity)
-        loadActivities()
-    }
-
-    func showAddActivity() {
-        isShowingAddActivity = true
-    }
-
-    func cancelAddActivity() {
-        isShowingAddActivity = false
-        newActivityName = ""
-        newActivityDescription = ""
+        activities.removeAll { $0.id == activity.id }
     }
 }

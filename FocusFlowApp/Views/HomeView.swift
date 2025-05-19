@@ -8,71 +8,37 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
+    @State private var showingAddActivity = false
     @State private var selectedActivity: Activity?
 
     var body: some View {
         NavigationView {
             List {
-                ForEach(viewModel.state.activities) { activity in
-                    Button {
-                        selectedActivity = activity
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(activity.name)
-                                .font(.headline)
-
-                            if !activity.description.isEmpty {
-                                Text(activity.description)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                ForEach(viewModel.activities) { activity in
+                    ActivityRow(activity: activity)
+                        .onTapGesture {
+                            selectedActivity = activity
+                        }
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                viewModel.deleteActivity(activity)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
-                    }
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            viewModel.deleteActivity(activity)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
                 }
             }
             .navigationTitle("Focus Flow")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink {
-                        StatsView()
-                    } label: {
-                        Image(systemName: "chart.bar")
-                    }
-                }
-
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        viewModel.showAddActivity()
-                    } label: {
+                    Button(action: {
+                        showingAddActivity = true
+                    }) {
                         Image(systemName: "plus")
                     }
                 }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        Image(systemName: "gear")
-                    }
-                }
             }
-            .overlay {
-                if viewModel.state.activities.isEmpty {
-                    ContentUnavailableView(
-                        "No Activities",
-                        systemImage: "list.bullet.clipboard",
-                        description: Text("Add some activities to get started")
-                    )
-                }
-            }
-            .sheet(isPresented: $viewModel.isShowingAddActivity) {
+            .sheet(isPresented: $showingAddActivity) {
                 NavigationView {
                     Form {
                         Section {
@@ -85,13 +51,16 @@ struct HomeView: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Cancel") {
-                                viewModel.cancelAddActivity()
+                                showingAddActivity = false
+                                viewModel.newActivityName = ""
+                                viewModel.newActivityDescription = ""
                             }
                         }
 
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Add") {
                                 viewModel.addActivity()
+                                showingAddActivity = false
                             }
                             .disabled(viewModel.newActivityName.isEmpty)
                         }
@@ -101,6 +70,15 @@ struct HomeView: View {
             .sheet(item: $selectedActivity) { activity in
                 NavigationView {
                     TimerView(activity: activity)
+                }
+            }
+            .overlay {
+                if viewModel.activities.isEmpty {
+                    ContentUnavailableView(
+                        "No Activities",
+                        systemImage: "list.bullet.clipboard",
+                        description: Text("Add some activities to get started")
+                    )
                 }
             }
         }
